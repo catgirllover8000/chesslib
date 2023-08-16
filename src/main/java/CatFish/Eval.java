@@ -95,6 +95,32 @@ public class Eval {
     };
     Board board;
 
+    public static boolean isEndgame(Board board){
+        int whitequeens = 0;
+        int blackqueens = 0;
+        int whiteminor = 0;
+        int blackminor = 0;
+        for(Square square : Square.values()){
+            Piece piece = board.getPiece(square);
+            if (piece.getPieceType() == PieceType.QUEEN){
+                if (piece.getPieceSide() == Side.WHITE){
+                    whitequeens++;
+                } else {
+                    blackqueens++;
+                }
+            } else if (piece.getPieceType() != PieceType.PAWN && piece.getPieceType()!= PieceType.KING) {
+                if (piece.getPieceSide() == Side.WHITE){
+                    whiteminor++;
+                } else {
+                    blackminor++;
+                }
+            }
+        }
+        boolean white_endgame = (whitequeens == 0) || (whitequeens == 1 && whiteminor <= 1);
+        boolean black_endgame = (blackqueens == 0) || (blackqueens == 1 && blackminor <= 1);
+        return white_endgame && black_endgame;
+    }
+
     public int evaluate(Board board){
         this.board = board;
         if (board.isDraw()){
@@ -112,6 +138,7 @@ public class Eval {
         for (int n = 0; n < Square.values().length;n++){
             Square square = Square.values()[n];
             Piece piece = board.getPiece(square);
+            PieceType pt = piece.getPieceType();
 
             if (piece != Piece.NONE){
                 int pieceValue = 0;
@@ -135,11 +162,18 @@ public class Eval {
                         pieceValue = 10000;
                         break;
                 }
-                if (piece.getPieceSide() == Side.WHITE){
-                    eval += pieceValue + pst[pieceToIndex.get(piece.getPieceType())][squareIndices[square.ordinal()]]; // need to fix for endgame king
-
+                if (pt == PieceType.KING && isEndgame(board)){
+                    if (piece.getPieceSide() == Side.WHITE){
+                        eval += pieceValue + pst[6][squareIndices[square.ordinal()]];
+                    } else {
+                        eval -= pieceValue + pst[6][63 - squareIndices[square.ordinal()]];
+                    }
                 } else {
-                    eval -= pieceValue + pst[pieceToIndex.get(piece.getPieceType())][63 - squareIndices[square.ordinal()]];
+                    if (piece.getPieceSide() == Side.WHITE){
+                        eval += pieceValue + pst[pieceToIndex.get(pt)][squareIndices[square.ordinal()]];
+                    } else {
+                        eval -= pieceValue + pst[pieceToIndex.get(pt)][63 - squareIndices[square.ordinal()]];
+                    }
 
                 }
             }
