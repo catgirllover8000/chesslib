@@ -51,7 +51,7 @@ class mvvlvaComparator implements Comparator<Move>{
 }
 public class Sort {
 
-    public List<Move> MVVLVA(List<Move> moves, Board board){
+    public List<Move> MVVLVA(List<Move> moves, Board board) {
         moves.sort(new mvvlvaComparator(board));
         return moves;
         // Own sorting alg (merge/quick sort?)probably magnitudes faster

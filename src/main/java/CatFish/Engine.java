@@ -4,9 +4,7 @@ import com.github.bhlangonijr.chesslib.Piece;
 import com.github.bhlangonijr.chesslib.Side;
 import com.github.bhlangonijr.chesslib.move.Move;
 
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 import static CatFish.Eval.isEndgame;
 
@@ -19,6 +17,7 @@ public class Engine {
     public static final int MAX = 100000;
     Eval eval = new Eval();
     Sort sort = new Sort();
+    Map<Long, TTentry> tt = new HashMap<Long, TTentry>();
     Side AIPlayer;
 
     int R = 2;
@@ -34,6 +33,7 @@ public class Engine {
 */
 
     public Move pickMove(Board board, int depth){
+        tt.clear();
         nodes = 0;
         if (AIPlayer == Side.WHITE && board.getSideToMove() == Side.WHITE){
             Move best_move = null;
@@ -104,6 +104,7 @@ public class Engine {
 
     public int Search(Board board, int depth, int alpha, int beta, boolean allowNull) {
         nodes++;
+
         if (depth <= 0 || board.isDraw() || board.isMated()){
             return eval.evaluate(board);//quiesce(board, alpha, beta, 5);
         }
@@ -125,15 +126,28 @@ public class Engine {
 
         List<Move> legalMoves = sort.MVVLVA(board.legalMoves(), board);
 
+        long hash = board.getZobristKey();
+        if (tt.containsKey(hash)){
+            TTentry ent = tt.get(hash);
+            if (ent.getDepth() >= depth){
+                return ent.getBestValue();
+            } else if (ent.getPV() != null) {
+                legalMoves.add(0, ent.getPV());
+            }
+        }
+
         if (board.getSideToMove() == Side.WHITE){
-            Move best_move;
+            Move best_move = null;
             int best_value = MIN;
             int value;
 
             for (Move move : legalMoves){
                 board.doMove(move);
                 value = Search(board, depth -1, alpha, beta, true); //dynamic memory allocation
-                best_value = Math.max(value, best_value);
+                if (value > best_value){
+                    best_value = value;
+                    best_move = move;
+                }
                 board.undoMove();
                 alpha = Math.max(alpha, best_value);
                 if (beta <= alpha){
@@ -141,22 +155,29 @@ public class Engine {
                 }
 
             }
+            TTentry entry = new TTentry(best_move, best_value, depth);
+            tt.put(board.getZobristKey(), entry);
             return best_value;
         } else {
-            Move worst_move;
+            Move worst_move = null;
             int worst_value = MAX;
             int value;
 
             for (Move move : legalMoves){
                 board.doMove(move);
                 value = Search(board, depth -1, alpha, beta, true);
-                worst_value = Math.min(value, worst_value);
+                if (value < worst_value){
+                    worst_value = value;
+                    worst_move = move;
+                }
                 board.undoMove();
                 beta = Math.min(beta, value);
                 if (beta <= alpha){
                     break;
                 }
             }
+            TTentry entry = new TTentry(worst_move, worst_value, depth);
+            tt.put(board.getZobristKey(), entry);
             return worst_value;
         }
     }
