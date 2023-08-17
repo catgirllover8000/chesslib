@@ -54,8 +54,9 @@ public class Main {
             System.out.println("AI Played: " + AImove);
             System.out.println("Calculation time: " + (endTime - startTime) + " Milliseconds");
             System.out.println(board.toString());
-            System.out.println("static eval: " + eval.evaluate(board));
-            System.out.println("Legal moves: " + sort.MVVLVA(board.legalMoves(), board));
+            System.out.println("Nodes: " + Engine.nodes);
+            //System.out.println("Legal moves: " + sort.MVVLVA(board.legalMoves(), board));
+            System.out.println("\n");
             if (board.isMated() || board.isDraw()){
                 System.out.println("Game Over!");
                 break;

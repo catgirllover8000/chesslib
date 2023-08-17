@@ -1,5 +1,6 @@
 package CatFish;
 import com.github.bhlangonijr.chesslib.Board;
+import com.github.bhlangonijr.chesslib.Piece;
 import com.github.bhlangonijr.chesslib.Side;
 import com.github.bhlangonijr.chesslib.move.Move;
 
@@ -11,6 +12,8 @@ import static CatFish.Eval.isEndgame;
 
 
 public class Engine {
+
+    public static int nodes;
 
     public static final int MIN = -100000;
     public static final int MAX = 100000;
@@ -31,6 +34,7 @@ public class Engine {
 */
 
     public Move pickMove(Board board, int depth){
+        nodes = 0;
         if (AIPlayer == Side.WHITE && board.getSideToMove() == Side.WHITE){
             Move best_move = null;
             int best_value = MIN;
@@ -64,9 +68,10 @@ public class Engine {
     }
 
 
-/*    public int Quiesce(Board board, int alpha, int beta, int maxdepth){
-        if (maxdepth == 0){
-            return eval.evaluate(board);
+    public int quiesce(Board board, int alpha, int beta, int depth){
+        nodes++;
+        if (depth <= 0){
+            return this.eval.evaluate(board);
         }
         int eval = this.eval.evaluate(board);
         if (eval >= beta){
@@ -75,11 +80,12 @@ public class Engine {
         if (alpha < eval){
             alpha = eval;
         }
+        List<Move> moves = sort.MVVLVA(board.legalMoves(), board);
 
-        for (Move move : board.legalMoves()){
-            if (board.getPiece(move.getTo()) != null){
+        for (Move move : moves){
+            if (board.getPiece(move.getTo()) != Piece.NONE){
                 board.doMove(move);
-                int score = -Quiesce(board, alpha, beta, maxdepth - 1);
+                int score = -quiesce(board, alpha, beta, depth-1);
                 board.undoMove();
                 if (score >= beta){
                     return beta;
@@ -90,23 +96,30 @@ public class Engine {
             }
         }
         return alpha;
-    }*/
+    }
 
     private boolean canApplyNullMove(Board board, int depth){
-        return depth >= (R + 1) && !isEndgame(board);
+        return board.getMoveCounter() >= (R + 1) && !isEndgame(board); // changed from depth >= R + 1
     }
 
     public int Search(Board board, int depth, int alpha, int beta, boolean allowNull) {
+        nodes++;
         if (depth <= 0 || board.isDraw() || board.isMated()){
-            return eval.evaluate(board);//Quiesce(board, alpha, beta, 5);
+            return eval.evaluate(board);//quiesce(board, alpha, beta, 5);
         }
         //System.out.println(board.getSideToMove() == AIPlayer && allowNull && !board.isKingAttacked());
         if (board.getSideToMove() == AIPlayer /*&& canApplyNullMove(board, depth) */&& allowNull && !board.isKingAttacked()){
             board.doNullMove();
             int value = -Search(board, depth - R - 1, -beta, -beta + 1, false);
             board.undoMove();
-            if (value >= beta){
-                return value;
+            if (AIPlayer == Side.WHITE){
+                if (value <= alpha){
+                    return value;
+                }
+            } else {
+                if (value >= beta){
+                    return value;
+                }
             }
         }
 
@@ -126,6 +139,7 @@ public class Engine {
                 if (beta <= alpha){
                     break;
                 }
+
             }
             return best_value;
         } else {
